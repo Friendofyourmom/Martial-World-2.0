@@ -1,154 +1,17 @@
 (() => {
-  const cfg = window.MW_CONFIG || {};
-  const hasConfig = !!(cfg.supabaseUrl && cfg.supabasePublishableKey && window.supabase);
-  const client = hasConfig ? window.supabase.createClient(cfg.supabaseUrl, cfg.supabasePublishableKey) : null;
-  const $ = (id) => document.getElementById(id);
-  const state = { user:null, character:null, resources:null, currentPage:"home", authMode:"signin", demo:false };
-  const pages = ["home","character","cultivation","world","activities","inventory","factions","bazaar","guilds","social","rankings"];
-  const labels = {home:"HOME",character:"CHARACTER",cultivation:"CULTIVATION",world:"WORLD",activities:"ACTIVITIES",inventory:"INVENTORY",factions:"FACTIONS",bazaar:"BAZAAR",guilds:"GUILDS",social:"SOCIAL",rankings:"RANKINGS"};
-  const fmt = (n) => Number(n || 0).toLocaleString();
-
-  function toast(message){ const el=$("toast"); el.textContent=message; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2600); }
-  function setConnection(online,message){ $("connectionDot").parentElement.className="connection "+(online?"online":"offline"); $("connectionText").textContent=message; }
-  function setMeter(barId,value,max){ const pct=max>0?Math.max(0,Math.min(100,(Number(value||0)/Number(max))*100)):0; $(barId).style.width=pct+"%"; }
-  function renderHud(){
-    const c=state.character, r=state.resources;
-    $("playerName").textContent=c?.character_name || (state.user?"New Cultivator":"Guest Wanderer");
-    $("realmLine").textContent=c?`${realmName(c.realm_key)} · ${stageName(c.realm_stage)}`:(state.user?"Character not created":"Sign in to begin your journey");
-    $("silverValue").textContent=r?fmt(r.silver):"—";
-    $("lpValue").textContent=r?`${fmt(r.life_points)} / ${fmt(r.max_life_points)}`:"—";
-    $("energyValue").textContent=r?`${fmt(r.energy)} / 100`:"—";
-    $("kiValue").textContent=r?`${fmt(r.ki)} / ${fmt(r.max_ki || 0)}`:"—";
-    $("knowledgeValue").textContent=r?fmt(r.knowledge):"—";
-    $("knowledgeNote").textContent=r?"Breakthrough progress":"Breakthrough progress";
-    setMeter("lpBar",r?.life_points,r?.max_life_points); setMeter("energyBar",r?.energy,100); setMeter("kiBar",r?.ki,r?.max_ki);
-  }
-  function realmName(key){return ({ordinary_person:"Ordinary Person",third_rate_warrior:"Third-Rate Warrior",second_rate_warrior:"Second-Rate Warrior",first_rate_warrior:"First-Rate Warrior",peak_warrior:"Peak Warrior",master:"Master",grandmaster:"Grandmaster",supreme_master:"Supreme Master",transcendent:"Transcendent"})[key]||String(key||"Unknown Realm").replaceAll("_"," ").replace(/\b\w/g,x=>x.toUpperCase());}
-  function stageName(s){return ({early:"Early Stage",middle:"Middle Stage",late:"Late Stage",peak:"Peak Stage"})[s]||"Early Stage";}
-  function pageHeading(title,sub,eyebrow="YOUR JOURNEY"){return `<div class="page-heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${sub}</p></div></div>`;}
-  function homePage(){
-    const greeting=state.character?`Welcome back, ${escapeHtml(state.character.character_name)}.`:"Your journey through the Murim begins here.";
-    return `${pageHeading("Home","Your path through the martial world begins with a single step.")}
-      <div class="dashboard-grid">
-        <div class="stack">
-          <section class="panel welcome-panel"><div><div class="location-tag">⌖ &nbsp; JADE CAPITAL · CENTRAL PLAINS</div><h2>${greeting}</h2><p>The streets of Jade Capital are alive with merchants, travelling martial artists and sect disciples. Your next chapter is yours to write.</p></div><div><button class="gold-button" data-go="world">Explore the world&nbsp; →</button></div></section>
-          <section class="panel"><div class="panel-title"><h3>QUICK ACTIONS</h3><span>YOUR PATH</span></div><div class="quick-grid">
-            ${quick("⚔","Training","Improve your attributes","cultivation")}${quick("◈","Meditation","Refine your Ki","cultivation")}
-            ${quick("▣","Quests","Find your next task","activities")}${quick("◇","Marketplace","Browse available goods","bazaar")}
-          </div></section>
-          <section class="panel"><div class="panel-title"><h3>RECENT ACTIVITY</h3><span>WORLD FEED</span></div><div class="activity-list">
-            <div class="activity-row"><i class="activity-dot"></i><div>Jade Capital remains a gathering place for martial artists.<small>World notice · Available to all cultivators</small></div></div>
-            <div class="activity-row"><i class="activity-dot"></i><div>Your personal journey will appear here as you play.<small>Activity log · Connected to your character</small></div></div>
-          </div></section>
-        </div>
-        <div class="stack">
-          <section class="panel"><div class="panel-title"><h3>CHARACTER OVERVIEW</h3><span>PROFILE</span></div>
-            ${state.character?`<div class="notice"><strong>${escapeHtml(state.character.character_name)}</strong><br>${realmName(state.character.realm_key)} · ${stageName(state.character.realm_stage)}<br><span style="color:#9c9a94">Your character is loaded from the Martial World database.</span></div><button class="secondary-button" style="margin-top:12px" data-go="character">View character →</button>`:`<div class="empty-state"><strong>No character yet</strong>Sign in and create your first cultivator to begin.</div><button class="gold-button full-button" style="margin-top:12px" data-action="create-character">Create character</button>`}
-          </section>
-          <section class="panel"><div class="panel-title"><h3>YOUR NEXT MILESTONE</h3><span>CULTIVATION</span></div><div class="empty-state"><strong>${state.character?"The path awaits":"A new beginning"}</strong>${state.character?"Visit Cultivation to review your training and breakthrough progress.":"Your realm, Knowledge and cultivation progress will appear here."}</div><button class="secondary-button" style="margin-top:12px" data-go="cultivation">Open cultivation →</button></section>
-          <section class="panel"><div class="panel-title"><h3>WORLD STATUS</h3><span>LIVE SYSTEMS</span></div><div class="activity-list"><div class="activity-row"><i class="activity-dot"></i><div>Central Plains<span class="muted"> · Starting region</span></div></div><div class="activity-row"><i class="activity-dot"></i><div>Jade Capital<span class="muted"> · Starting location</span></div></div></div></section>
-        </div>
-      </div>`;
-  }
-  function quick(icon,title,sub,page){return `<button class="quick-card" data-go="${page}"><span class="quick-icon">${icon}</span><span><strong>${title}</strong><small>${sub}</small></span></button>`;}
-  function genericPage(page){
-    const data={
-      character:["Character","Your attributes, equipment, condition and personal profile.","PERSONAL PROFILE","Your character details will appear here once your character is loaded."],
-      cultivation:["Cultivation","Train your body, refine your Ki and pursue the next realm.","MARTIAL PROGRESSION","Training, meditation and breakthrough interfaces will be connected to the secure gameplay functions in the next build."],
-      world:["World","Travel through the regions and discover the hidden places of the Murim.","THE CENTRAL PLAINS","Your current location is Jade Capital. Travel routes, discoveries and expeditions will be connected here."],
-      activities:["Activities","Quests, combat, gathering and expeditions.","DAILY LIFE IN THE MURIM","Your activity centre will bring together quests, combat encounters and other world activities."],
-      inventory:["Inventory","Manage your items, equipment, manuals and consumables.","YOUR POSSESSIONS","Your inventory and equipment will load from the game database in a later screen integration."],
-      factions:["Factions","Choose your loyalties and build your reputation.","THE GREAT ORGANISATIONS","The Murim Alliance, Black Castle Alliance and Crimson Moon Demonic Cult will be represented here."],
-      bazaar:["Bazaar","Trade goods and build your own merchant presence.","THE MURIM ECONOMY","NPC shops, player listings, your shop and secure trading will be integrated here."],
-      guilds:["Guilds","Join a player organisation or establish your own.","PLAYER ORGANISATIONS","Guild creation, invitations and membership foundations are installed in the database."],
-      social:["Social","Meet other cultivators in the shared world.","THE LIVING MURIM","Public profiles, presence and moderated world chat foundations are installed."],
-      rankings:["Rankings","See how cultivators stand across the martial world.","WORLD RANKINGS","World, realm, faction and combat ranking screens are planned."],
-    };
-    const d=data[page]||data.home;
-    return `${pageHeading(d[0],d[1],d[2])}<section class="panel"><div class="empty-state"><strong>${d[0]} is being prepared</strong>${d[3]}<br><br><span style="color:#c9a45c">This is a staged build: this screen is a placeholder, not a completed feature.</span></div></section>`;
-  }
-  function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-  function navigate(page){
-    if(page==="more"){ $("sidebar").classList.toggle("open"); return; }
-    if(!pages.includes(page))page="home";
-    state.currentPage=page; $("pageCrumb").textContent=labels[page];
-    $("pageContent").innerHTML=page==="home"?homePage():genericPage(page);
-    document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
-    $("sidebar").classList.remove("open");
-    window.scrollTo({top:0,behavior:"smooth"});
-  }
-  async function loadCharacter(){
-    if(!client||!state.user)return;
-    const {data:character,error}=await client.from("characters").select("id,owner_id,character_name,realm_key,realm_stage,created_at").eq("owner_id",state.user.id).maybeSingle();
-    if(error)throw error;
-    state.character=character;
-    if(character){
-      const {data:resources,error:resourceError}=await client.from("character_resources").select("character_id,energy,knowledge,ki,max_ki,life_points,max_life_points,silver,cultivation_xp").eq("character_id",character.id).maybeSingle();
-      if(resourceError)throw resourceError;
-      state.resources=resources;
-      $("characterModal").hidden=true;
-    } else {
-      state.resources=null;
-      $("characterModal").hidden=false;
-    }
-    renderHud(); navigate(state.currentPage);
-  }
-  async function refreshSession(){
-    if(!client){setConnection(false,"Supabase configuration missing");renderHud();navigate("home");return;}
-    try{
-      const {data:{session},error}=await client.auth.getSession(); if(error)throw error;
-      state.user=session?.user||null;
-      if(state.user){setConnection(true,"Connected · signed in");$("signOutBtn").hidden=false;await loadCharacter();}
-      else{setConnection(true,"Connected · not signed in");$("signOutBtn").hidden=true;state.character=null;state.resources=null;renderHud();navigate("home");}
-    }catch(e){console.error(e);setConnection(false,"Connection check failed");toast("Could not load your account. Check your connection.");}
-  }
-  function openAuth(){state.authMode="signin";updateAuthMode();$("authModal").hidden=false;}
-  function updateAuthMode(){
-    const signup=state.authMode==="signup";
-    $("authTitle").textContent=signup?"Create your account":"Welcome back";
-    $("authDescription").textContent=signup?"Create an account to enter the Murim.":"Sign in to continue your journey.";
-    $("authSubmit").textContent=signup?"Create account":"Sign in";
-    $("toggleAuth").textContent=signup?"Already have an account? Sign in":"Need an account? Create one";
-    $("authPassword").autocomplete=signup?"new-password":"current-password";$("authMessage").textContent="";
-  }
-  async function submitAuth(e){
-    e.preventDefault(); if(!client){$("authMessage").textContent="Supabase is not configured. Check config.js.";return;}
-    const email=$("authEmail").value.trim(),password=$("authPassword").value;
-    $("authSubmit").disabled=true;$("authMessage").textContent="Please wait…";
-    try{
-      let result;
-      if(state.authMode==="signup")result=await client.auth.signUp({email,password});
-      else result=await client.auth.signInWithPassword({email,password});
-      if(result.error)throw result.error;
-      if(state.authMode==="signup"&&!result.data.session){$("authMessage").textContent="Account created. Check your email to confirm, then sign in.";return;}
-      $("authModal").hidden=true;state.user=result.data.user;await loadCharacter();toast("Welcome to the Murim.");
-    }catch(err){$("authMessage").textContent=err.message||"Authentication failed.";}
-    finally{$("authSubmit").disabled=false;}
-  }
-  async function createCharacter(e){
-    e.preventDefault();if(!client||!state.user){$("characterMessage").textContent="Please sign in first.";return;}
-    const name=$("characterName").value.trim();$("createCharacterBtn").disabled=true;$("characterMessage").textContent="Creating your character…";
-    try{
-      const {error}=await client.rpc("create_character",{p_character_name:name,p_appearance_key:$("appearanceKey").value,p_background_key:$("backgroundKey").value});
-      if(error)throw error;
-      await loadCharacter();toast("Your journey begins."); 
-    }catch(err){$("characterMessage").textContent=err.message||"Could not create character.";}
-    finally{$("createCharacterBtn").disabled=false;}
-  }
-  document.addEventListener("click",e=>{
-    const page=e.target.closest("[data-page]");if(page){e.preventDefault();navigate(page.dataset.page);return;}
-    const go=e.target.closest("[data-go]");if(go){navigate(go.dataset.go);return;}
-    const action=e.target.closest("[data-action]")?.dataset.action;
-    if(action==="create-character")$("characterModal").hidden=false;
-  });
-  $("menuBtn").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
-  $("accountButton").addEventListener("click",()=>state.user?toast("Signed in as "+state.user.email):openAuth());
-  $("closeAuth").addEventListener("click",()=>$("authModal").hidden=true);
-  $("closeCharacter").addEventListener("click",()=>{if(!state.character)toast("Create a character to begin.");else $("characterModal").hidden=true;});
-  $("authForm").addEventListener("submit",submitAuth);
-  $("toggleAuth").addEventListener("click",()=>{state.authMode=state.authMode==="signin"?"signup":"signin";updateAuthMode();});
-  $("characterForm").addEventListener("submit",createCharacter);
-  $("signOutBtn").addEventListener("click",async()=>{if(client){await client.auth.signOut();state.user=null;state.character=null;state.resources=null;renderHud();navigate("home");$("signOutBtn").hidden=true;setConnection(true,"Connected · not signed in");toast("Signed out.");}});
-  if(client)client.auth.onAuthStateChange((_event,session)=>{state.user=session?.user||null;if(!state.user){state.character=null;state.resources=null;renderHud();navigate("home");}});
-  renderHud();navigate("home");refreshSession();
+ const cfg=window.MW_CONFIG||{};const client=cfg.supabaseUrl&&cfg.supabasePublishableKey&&window.supabase?window.supabase.createClient(cfg.supabaseUrl,cfg.supabasePublishableKey):null;const $=id=>document.getElementById(id);
+ const state={user:null,character:null,resources:null,currentPage:"home",authMode:"signin"};const pages=["home","character","cultivation","world","activities","inventory","factions","bazaar","guilds","social","rankings"];const labels=Object.fromEntries(pages.map(p=>[p,p.toUpperCase()]));
+ const appearances=[{key:"wanderer_01",name:"Wanderer",x:0,y:0},{key:"sect_disciple_01",name:"Sect Disciple",x:1,y:0},{key:"noble_heir_01",name:"Noble Heir",x:2,y:0},{key:"traveller_01",name:"Traveller",x:3,y:0},{key:"scholar_01",name:"Scholar",x:0,y:1},{key:"healer_01",name:"Healer",x:1,y:1},{key:"rogue_01",name:"Rogue",x:2,y:1},{key:"mystic_01",name:"Mystic",x:3,y:1}];
+ const fmt=n=>Number(n||0).toLocaleString();function toast(s){const e=$("toast");e.textContent=s;e.hidden=false;setTimeout(()=>e.hidden=true,2600)}function setConnection(ok,s){$("connectionDot").parentElement.className="connection "+(ok?"online":"offline");$("connectionText").textContent=s}function meter(id,v,m){$(id).style.width=(m>0?Math.max(0,Math.min(100,Number(v||0)/Number(m)*100)):0)+"%"}
+ function realm(k){return ({ordinary_person:"Ordinary Person",third_rate_warrior:"Third-Rate Warrior",second_rate_warrior:"Second-Rate Warrior",first_rate_warrior:"First-Rate Warrior",peak_warrior:"Peak Warrior",master:"Master",grandmaster:"Grandmaster",supreme_master:"Supreme Master",transcendent:"Transcendent"})[k]||k||"Unknown Realm"}function renderHud(){let c=state.character,r=state.resources;$("playerName").textContent=c?.character_name||(state.user?"New Cultivator":"Guest Wanderer");$("realmLine").textContent=c?`${realm(c.realm_key)} · ${(c.realm_stage||"early").toUpperCase()} STAGE`:state.user?"Character not created":"Sign in to begin your journey";$("silverValue").textContent=r?fmt(r.silver):"—";$("lpValue").textContent=r?`${fmt(r.life_points)} / ${fmt(r.max_life_points)}`:"—";$("energyValue").textContent=r?`${fmt(r.energy)} / 100`:"—";$("kiValue").textContent=r?`${fmt(r.ki)} / ${fmt(r.max_ki||0)}`:"—";$("knowledgeValue").textContent=r?fmt(r.knowledge):"—";meter("lpBar",r?.life_points,r?.max_life_points);meter("energyBar",r?.energy,100);meter("kiBar",r?.ki,r?.max_ki)}
+ function heading(t,s){return `<div class="page-heading"><div class="eyebrow">YOUR JOURNEY</div><h1>${t}</h1><p>${s}</p></div>`}function home(){return `${heading("Home","Your path through the martial world begins with a single step.")}<div class="dashboard-grid"><div class="stack"><section class="panel welcome-panel"><div><div class="location-tag">⌖　JADE CAPITAL · CENTRAL PLAINS</div><h2>${state.character?`Welcome back, ${escape(state.character.character_name)}.`:"Your journey through the Murim begins here."}</h2><p>The streets of Jade Capital are alive with merchants, travelling martial artists and sect disciples. Your next chapter is yours to write.</p></div><button class="gold-button" data-go="world">Explore the world →</button></section><section class="panel"><div class="panel-title"><h3>QUICK ACTIONS</h3><span>YOUR PATH</span></div><div class="quick-grid"><button class="quick-card" data-go="cultivation">⚔　Training</button><button class="quick-card" data-go="cultivation">◈　Meditation</button><button class="quick-card" data-go="activities">▣　Quests</button><button class="quick-card" data-go="bazaar">◇　Marketplace</button></div></section></div><div class="stack"><section class="panel"><div class="panel-title"><h3>CHARACTER OVERVIEW</h3><span>PROFILE</span></div>${state.character?`<div class="notice"><strong>${escape(state.character.character_name)}</strong><br>${realm(state.character.realm_key)}<br>Your character is loaded from the Martial World database.</div>`:`<div class="empty-state">No character yet. Create your first cultivator to begin.</div>`}<button class="gold-button full-button" data-action="account">${state.user?"Create character":"Sign Up / Sign In"}</button></section><section class="panel"><div class="panel-title"><h3>WORLD STATUS</h3><span>STARTING REGION</span></div><div class="notice">Central Plains · Jade Capital</div></section></div></div>`}
+ function escape(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}function generic(p){let d={character:["Character","Your attributes, equipment, condition and personal profile."],cultivation:["Cultivation","Train your body, refine your Ki and pursue the next realm."],world:["World","Travel through the regions and discover hidden places."],activities:["Activities","Quests, combat, gathering and expeditions."],inventory:["Inventory","Manage your items, equipment, manuals and consumables."],factions:["Factions","Choose your loyalties and build your reputation."],bazaar:["Bazaar","Trade goods and build your merchant presence."],guilds:["Guilds","Join a player organisation or establish your own."],social:["Social","Meet other cultivators in the shared world."],rankings:["Rankings","See how cultivators stand across the martial world."]}[p];return `${heading(d[0],d[1])}<section class="panel"><div class="empty-state"><strong>${d[0]} is being prepared</strong>This section will be connected in a later build.</div></section>`}function navigate(p){if(p==="more"){$("sidebar").classList.toggle("open");return}if(!pages.includes(p))p="home";state.currentPage=p;$("pageCrumb").textContent=labels[p];$("pageContent").innerHTML=p==="home"?home():generic(p);document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p));$("sidebar").classList.remove("open")}
+ function renderAppearance(containerId,inputId,selected="wanderer_01"){const root=$(containerId);root.innerHTML=appearances.map(a=>`<button type="button" class="appearance-option ${a.key===selected?"selected":""}" data-appearance="${a.key}" aria-pressed="${a.key===selected}"><div class="portrait" style="background-position:${a.x*33.333}% ${a.y*100}%"></div><span>${a.name}</span></button>`).join("");$(inputId).value=selected;root.querySelectorAll("[data-appearance]").forEach(b=>b.addEventListener("click",()=>{root.querySelectorAll(".appearance-option").forEach(x=>{x.classList.remove("selected");x.setAttribute("aria-pressed","false")});b.classList.add("selected");b.setAttribute("aria-pressed","true");$(inputId).value=b.dataset.appearance}))}
+ function setAuthMode(mode){state.authMode=mode;const up=mode==="signup";$("signinTab").classList.toggle("active",!up);$("signupTab").classList.toggle("active",up);$("signupFields").hidden=!up;$("authTitle").textContent=up?"Create your account":"Welcome back";$("authDescription").textContent=up?"Create your account and your first cultivator together.":"Sign in to continue your journey.";$("authSubmit").textContent=up?"Create Account & Character":"Sign In";$("authPassword").autocomplete=up?"new-password":"current-password";$("authMessage").textContent="";$("authFootnote").textContent=up?"Already have an account? Choose Sign In.":"New to the Murim? Choose Sign Up to create your account and character together."}
+ function openAuth(mode="signin"){setAuthMode(mode);$("authModal").hidden=false;if(mode==="signup")renderAppearance("appearanceGrid","appearanceKey")}async function createCharacter(name,appearance,background){const {error}=await client.rpc("create_character",{p_character_name:name,p_appearance_key:appearance,p_background_key:background});if(error)throw error;localStorage.removeItem("mw_pending_character");await loadCharacter();$("authModal").hidden=true;$("characterModal").hidden=true;toast("Your journey begins.")}
+ async function loadCharacter(){if(!client||!state.user)return;const {data:c,error}=await client.from("characters").select("id,owner_id,character_name,realm_key,realm_stage,created_at").eq("owner_id",state.user.id).maybeSingle();if(error)throw error;state.character=c;if(c){const {data:r,error:re}=await client.from("character_resources").select("character_id,energy,knowledge,ki,max_ki,life_points,max_life_points,silver,cultivation_xp").eq("character_id",c.id).maybeSingle();if(re)throw re;state.resources=r;$("characterModal").hidden=true}else{state.resources=null;const pending=localStorage.getItem("mw_pending_character");if(pending){try{const p=JSON.parse(pending);$("retryCharacterName").value=p.name||"";$("retryAppearanceKey").value=p.appearance||"wanderer_01";$("retryBackgroundKey").value=p.background||"wandering_cultivator";renderAppearance("retryAppearanceGrid","retryAppearanceKey",p.appearance||"wanderer_01");await createCharacter(p.name,p.appearance,p.background);return}catch(e){$("characterMessage").textContent=e.message||"Character creation needs another try.";$("characterModal").hidden=false}}else{$("characterModal").hidden=false;renderAppearance("retryAppearanceGrid","retryAppearanceKey")}}renderHud();navigate(state.currentPage)}
+ async function refresh(){if(!client){setConnection(false,"Supabase configuration missing");return}try{const {data:{session},error}=await client.auth.getSession();if(error)throw error;state.user=session?.user||null;if(state.user){setConnection(true,"Connected · signed in");$("signOutBtn").hidden=false;await loadCharacter()}else{setConnection(true,"Connected · not signed in");$("signOutBtn").hidden=true;renderHud();navigate("home")}}catch(e){console.error(e);setConnection(false,"Connection check failed");toast("Could not load your account. Check your connection.")}}
+ $("authForm").addEventListener("submit",async e=>{e.preventDefault();if(!client){$("authMessage").textContent="Supabase configuration is missing.";return}const email=$("authEmail").value.trim(),password=$("authPassword").value;const up=state.authMode==="signup";let pending=null;if(up){const name=$("characterName").value.trim();if(!name){$("authMessage").textContent="Choose a character name first.";return}pending={name,appearance:$("appearanceKey").value,background:$("backgroundKey").value};localStorage.setItem("mw_pending_character",JSON.stringify(pending))}$("authSubmit").disabled=true;$("authMessage").textContent="Please wait…";try{let result=up?await client.auth.signUp({email,password,options:{emailRedirectTo:location.href.split("#")[0]}}):await client.auth.signInWithPassword({email,password});if(result.error)throw result.error;if(up&&!result.data.session){$("authMessage").textContent="Account created. Confirm your email, then return and sign in. Your character choices are saved on this device.";return}state.user=result.data.user;if(up&&pending){await createCharacter(pending.name,pending.appearance,pending.background)}else{$("authModal").hidden=true;await loadCharacter();toast("Welcome to the Murim.")}}catch(err){$("authMessage").textContent=err.message||"Could not complete sign in."}finally{$("authSubmit").disabled=false}});
+ $("characterForm").addEventListener("submit",async e=>{e.preventDefault();if(!client||!state.user){$("characterMessage").textContent="Please sign in first.";return}const btn=$("createCharacterBtn");btn.disabled=true;$("characterMessage").textContent="Creating your character…";try{await createCharacter($("retryCharacterName").value.trim(),$("retryAppearanceKey").value,$("retryBackgroundKey").value)}catch(err){$("characterMessage").textContent=err.message||"Could not create character."}finally{btn.disabled=false}});
+ document.addEventListener("click",e=>{const p=e.target.closest("[data-page]");if(p){e.preventDefault();navigate(p.dataset.page);return}const g=e.target.closest("[data-go]");if(g){navigate(g.dataset.go);return}const a=e.target.closest("[data-action]");if(a?.dataset.action==="account")state.user?($("characterModal").hidden=false,renderAppearance("retryAppearanceGrid","retryAppearanceKey")):openAuth("signup")});$("menuBtn").addEventListener("click",()=>$ ("sidebar").classList.toggle("open"));$("accountButton").addEventListener("click",()=>state.user?toast("Signed in as "+state.user.email):openAuth("signin"));$("closeAuth").addEventListener("click",()=>$ ("authModal").hidden=true);$("closeCharacter").addEventListener("click",()=>$ ("characterModal").hidden=true);$("signinTab").addEventListener("click",()=>setAuthMode("signin"));$("signupTab").addEventListener("click",()=>{setAuthMode("signup");renderAppearance("appearanceGrid","appearanceKey")});$("signOutBtn").addEventListener("click",async()=>{if(client){await client.auth.signOut();state.user=null;state.character=null;state.resources=null;renderHud();navigate("home");$("signOutBtn").hidden=true;setConnection(true,"Connected · not signed in")}});if(client)client.auth.onAuthStateChange((_event,session)=>{state.user=session?.user||null;if(!state.user){state.character=null;state.resources=null;renderHud();navigate("home")}});renderAppearance("appearanceGrid","appearanceKey");renderAppearance("retryAppearanceGrid","retryAppearanceKey");renderHud();navigate("home");refresh();
 })();
