@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151619">
+  <meta name="description" content="Martial World 2.0 — a Murim cultivation browser RPG.">
+  <title>Martial World 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" data-page="home" aria-label="Martial World home">
+        <span class="brand-mark">武</span>
+        <span><strong>MARTIAL WORLD</strong><small>THE LIVING MURIM</small></span>
+      </a>
+      <div class="side-label">YOUR WORLD</div>
+      <nav class="side-nav" id="sideNav">
+        <button class="nav-item active" data-page="home"><span>⌂</span> Home</button>
+        <button class="nav-item" data-page="character"><span>♙</span> Character</button>
+        <button class="nav-item" data-page="cultivation"><span>◈</span> Cultivation</button>
+        <button class="nav-item" data-page="world"><span>⌖</span> World</button>
+        <button class="nav-item" data-page="activities"><span>⚔</span> Activities</button>
+        <button class="nav-item" data-page="inventory"><span>▤</span> Inventory</button>
+      </nav>
+      <div class="side-label">COMMUNITY & TRADE</div>
+      <nav class="side-nav">
+        <button class="nav-item" data-page="factions"><span>⚑</span> Factions</button>
+        <button class="nav-item" data-page="bazaar"><span>◇</span> Bazaar</button>
+        <button class="nav-item" data-page="guilds"><span>♧</span> Guilds</button>
+        <button class="nav-item" data-page="social"><span>☷</span> Social</button>
+        <button class="nav-item" data-page="rankings"><span>☆</span> Rankings</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="connection"><i id="connectionDot"></i><span id="connectionText">Checking connection…</span></div>
+        <button class="quiet-button" id="signOutBtn" hidden>Sign out</button>
+        <small>BUILD 001 · DEVELOPMENT</small>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="mobile-menu icon-button" id="menuBtn" aria-label="Open navigation">☰</button>
+        <div class="breadcrumb"><span>THE CENTRAL PLAINS</span><b>/</b><strong id="pageCrumb">HOME</strong></div>
+        <div class="top-actions">
+          <span class="status-pill"><i></i> DEVELOPMENT REALM</span>
+          <button class="avatar-button" id="accountButton" aria-label="Account">?</button>
+        </div>
+      </header>
+
+      <section class="resource-panel" id="resourcePanel">
+        <div class="player-line">
+          <div>
+            <div class="eyebrow">CURRENT CULTIVATOR</div>
+            <div class="player-name" id="playerName">Guest Wanderer</div>
+            <div class="realm-line" id="realmLine">Not yet entered the Murim</div>
+          </div>
+          <div class="silver-box"><span>✧</span><div><small>SILVER</small><strong id="silverValue">—</strong></div></div>
+        </div>
+        <div class="resource-grid">
+          <div class="resource"><div class="resource-heading"><span class="resource-icon lp">♥</span><span>LIFE POINTS</span><b id="lpValue">—</b></div><div class="meter"><i class="lp-fill" id="lpBar"></i></div></div>
+          <div class="resource"><div class="resource-heading"><span class="resource-icon energy">✦</span><span>ENERGY</span><b id="energyValue">—</b></div><div class="meter"><i class="energy-fill" id="energyBar"></i></div></div>
+          <div class="resource"><div class="resource-heading"><span class="resource-icon ki">◉</span><span>KI</span><b id="kiValue">—</b></div><div class="meter"><i class="ki-fill" id="kiBar"></i></div></div>
+          <div class="resource knowledge-resource"><div class="resource-heading"><span class="resource-icon knowledge">❖</span><span>KNOWLEDGE</span><b id="knowledgeValue">—</b></div><div class="knowledge-note" id="knowledgeNote">Breakthrough progress</div></div>
+        </div>
+      </section>
+
+      <div class="page-wrap">
+        <div id="pageContent"></div>
+        <footer>Martial World 2.0 <span>·</span> A world shaped by your choices</footer>
+      </div>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="mobile-nav-item active" data-page="home"><span>⌂</span><small>Home</small></button>
+    <button class="mobile-nav-item" data-page="character"><span>♙</span><small>Character</small></button>
+    <button class="mobile-nav-item" data-page="cultivation"><span>◈</span><small>Cultivation</small></button>
+    <button class="mobile-nav-item" data-page="world"><span>⌖</span><small>World</small></button>
+    <button class="mobile-nav-item" data-page="more"><span>☷</span><small>More</small></button>
+  </nav>
+
+  <div class="modal-backdrop" id="authModal" hidden>
+    <div class="modal">
+      <button class="modal-close" id="closeAuth" aria-label="Close">×</button>
+      <div class="modal-emblem">武</div>
+      <div class="eyebrow">ENTER THE MURIM</div>
+      <h2 id="authTitle">Welcome back</h2>
+      <p class="muted" id="authDescription">Sign in to continue your journey.</p>
+      <form id="authForm">
+        <label>Email address<input type="email" id="authEmail" autocomplete="email" required placeholder="you@example.com"></label>
+        <label>Password<input type="password" id="authPassword" autocomplete="current-password" required minlength="6" placeholder="At least 6 characters"></label>
+        <button class="gold-button full-button" id="authSubmit" type="submit">Sign in</button>
+      </form>
+      <button class="text-button" id="toggleAuth">Need an account? Create one</button>
+      <p class="form-message" id="authMessage" role="status"></p>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="characterModal" hidden>
+    <div class="modal">
+      <button class="modal-close" id="closeCharacter" aria-label="Close">×</button>
+      <div class="modal-emblem">劍</div>
+      <div class="eyebrow">YOUR JOURNEY BEGINS</div>
+      <h2>Create your character</h2>
+      <p class="muted">Choose a name and begin as a wandering cultivator.</p>
+      <form id="characterForm">
+        <label>Character name<input id="characterName" required minlength="2" maxlength="16" pattern="[A-Za-z0-9_]+" placeholder="e.g. JadeWanderer"></label>
+        <label>Appearance
+          <select id="appearanceKey"><option value="wanderer_01">Wandering cultivator</option><option value="swordsman_01">Travelling swordsman</option></select>
+        </label>
+        <label>Background
+          <select id="backgroundKey"><option value="wandering_cultivator">Wandering cultivator</option><option value="fallen_clan">Fallen clan survivor</option><option value="martial_apprentice">Martial apprentice</option></select>
+        </label>
+        <button class="gold-button full-button" type="submit" id="createCharacterBtn">Create character</button>
+      </form>
+      <p class="form-message" id="characterMessage" role="status"></p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
